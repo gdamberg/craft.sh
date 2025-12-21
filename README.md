@@ -1,10 +1,10 @@
 # craft.sh
 
-Command-line tool for quick capture to Craft Documents. Appends text to your daily notes from the terminal.
+Command-line tool for quick capture to Craft Documents. Never leave your terminal to capture thoughts, code snippets, or command output.
 
 ## Project Description
 
-Lightweight bash script for capturing notes, command output, and code snippets directly to Craft. Supports multiple input methods - arguments, pipes, stdin and heredoc.
+`craft.sh` is a lightweight bash script that streams text directly to your Craft daily notes. Pipe command output, capture error logs, or save code snippets—all without breaking your flow.
 
 ## Requirements
 
