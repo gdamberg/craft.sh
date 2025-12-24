@@ -218,12 +218,6 @@ main() {
     # Check dependencies first
     dependency_check
     
-    # Load configuration
-    if ! load_config; then
-        log error "main" "Failed to load configuration"
-        exit 1
-    fi
-    
     # local variables
     local input=""
     local api_action="blocks"
@@ -259,6 +253,12 @@ main() {
                 ;;
         esac
     done
+
+    # Load configuration
+    if ! load_config; then
+        log error "main" "Failed to load configuration"
+        exit 1
+    fi
     
     # Get input from arguments or stdin
     if [[ ${#input_args[@]} -gt 0 ]]; then
