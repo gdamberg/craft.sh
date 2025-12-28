@@ -67,10 +67,21 @@ _Note!_ Environment variables take precedence over config file.
 craft.sh "Quick note"
 ```
 
+**Format options:**
+```bash
+# Code block
+git log --oneline -5 | craft.sh --code
+
+# Task list
+craft.sh --task "Review PR\nTest changes\nDeploy"
+
+# Bullet list
+echo -e "Apples\nBananas\nOranges" | craft.sh --list
+```
+
 **From pipes:**
 ```bash
 echo "my computer username is ${USER}" | craft.sh
-git log --oneline -5 | craft.sh --code
 cat notes.txt | craft.sh
 git diff | craft.sh --code
 ```

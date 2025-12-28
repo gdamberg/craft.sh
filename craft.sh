@@ -41,7 +41,11 @@ USAGE:
 OPTIONS:
     -h, --help          Show this help message
     -d, --debug         Enable debug logging
+
+FORMAT OPTIONS (mutually exclusive - choose only one):
     -c, --code          Wrap <input> in a markdown code block
+    -t, --task          Format <input> as a task list (with checkboxes)
+    -l, --list          Format <input> as a bullet list
 
 ARGUMENTS:
     <input>     Input text to capture (or via stdin/pipe)
@@ -50,6 +54,8 @@ EXAMPLES:
     craft.sh "Started work on x."
     echo "Some text" | craft.sh
     cat app.py | craft.sh --code
+    craft.sh --task "Review PR\nTest changes\nDeploy"
+    echo -e "Item 1\nItem 2\nItem 3" | craft.sh --list
     pbpaste | craft.sh
 
 CONFIG:
@@ -89,14 +95,51 @@ log() {
     esac
 }
 
+# Format line breaks: add extra line break if there's only one between lines
+# If there are already multiple line breaks, leave them as-is
+format_line_breaks() {
+    local input_text="$1"
+
+    log debug "format_line_breaks" "Processing line breaks"
+
+    # Use awk to add extra blank line between non-empty lines that aren't already separated
+    # NR>1: not the first line
+    # prev!="": previous line wasn't empty
+    # $0!="": current line isn't empty
+    # When all conditions met, print extra blank line before current line
+    echo "$input_text" | awk 'NR>1 && prev!="" && $0!="" {print ""} {prev=$0; print}'
+}
+
 # Create JSON payload for Craft API using jq
 create_json() {
     local input_text="$1"
     local input_position="$2"
     local input_date="$3"
+    local input_format="$4"
+    local style="none"
     
-    log debug "create_json" "Building payload" "position=${input_position}" "date=${input_date}"
+    log debug "create_json" "Building payload" "position=${input_position}" "date=${input_date}" "format=${input_format}"
     
+    
+    case "$input_format" in
+      code)
+        input_text="\`\`\`\n${input_text}\n\`\`\`"
+        ;;
+      list)
+        input_text=$(format_line_breaks "$input_text")
+        style="bullet"
+        ;;
+      task)
+        input_text=$(format_line_breaks "$input_text")
+        style="task"
+        ;;
+      *)
+        # Default: regular text format, no transformation needed
+        log debug "create_json" "Using default text format"
+        ;;
+    esac
+    
+    log debug "create_json" "Payload style" "style=${style}"
     # Use jq to create the JSON object
     # --null-input: start with null instead of reading input
     # --arg: pass shell variable as jq string variable
@@ -105,10 +148,12 @@ create_json() {
         --arg text "$input_text" \
         --arg position "$input_position" \
         --arg date "$input_date" \
+        --arg style "$style" \
         '{
             "blocks": [
                 {
                     "type": "text",
+                    "listStyle": $style,
                     "markdown": $text
                 }
             ],
@@ -223,7 +268,8 @@ main() {
     local api_action="blocks"
     local position="end"
     local date="today"
-    local code_block=false
+    local format="text"
+    local format_count=0
     
     # Parse arguments
     local input_args=()
@@ -238,7 +284,18 @@ main() {
                 shift
                 ;;
             -c|--code)
-                code_block=true
+                format="code"
+                ((format_count++))
+                shift
+                ;;
+            -t|--task)
+                format="task"
+                ((format_count++))
+                shift
+                ;;
+            -l|--list)
+                format="list"
+                ((format_count++))
                 shift
                 ;;
             -*)
@@ -253,6 +310,14 @@ main() {
                 ;;
         esac
     done
+
+    # Validate that only one format flag is specified
+    if [[ $format_count -gt 1 ]]; then
+        log error "main" "Multiple format flags specified (-c, -t, -l are mutually exclusive)"
+        echo ""
+        show_help
+        exit 1
+    fi
 
     # Load configuration
     if ! load_config; then
@@ -284,19 +349,16 @@ main() {
     fi
     
     log debug "main" "Processing input" "length=${#input}"
-    if [ "$code_block" = true ]; then
-        input="\`\`\`\n${input}\n\`\`\`"
-    fi
     
     # Create JSON payload
     local json_payload
-    json_payload=$(create_json "${input}" "${position}" "${date}")
+    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}")
     
     # Send to Craft API
     if post_to_craft "${api_action}" "${json_payload}"; then
       log debug "main" "Successfully posted to craft."
     else
-        log error "Failed to post to Craft"
+        log error "main" "Failed to post to Craft"
         exit 1
     fi
     
