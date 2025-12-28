@@ -89,27 +89,63 @@ log() {
     esac
 }
 
+# Format line breaks: add extra line break if there's only one between lines
+# If there are already multiple line breaks, leave them as-is
+format_line_breaks() {
+    local input_text="$1"
+    
+    log debug "format_line_breaks" "Processing line breaks"
+    
+    # Use awk to add extra blank line between non-empty lines that aren't already separated
+    # NR>1: not the first line
+    # prev!="": previous line wasn't empty
+    # $0!="": current line isn't empty
+    # When all conditions met, print extra blank line before current line
+    echo "$input_text" | awk 'NR>1 && prev!="" && $0!="" {print ""} {prev=$0; print}'
+}
+
 # Create JSON payload for Craft API using jq
 create_json() {
     local input_text="$1"
     local input_position="$2"
     local input_date="$3"
+    local input_format="$4"
+    local style="none"
     
-    log debug "create_json" "Building payload" "position=${input_position}" "date=${input_date}"
+    log debug "create_json" "Building payload" "position=${input_position}" "date=${input_date}" "format=${input_format}"
     
+    
+    case "$input_format" in
+      code)
+        input_text="\`\`\`\n${input_text}\n\`\`\`"
+        ;;
+      list)
+        input_text=$(format_line_breaks "$input_text")
+        style="bullet"
+        ;;
+      task)
+        input_text=$(format_line_breaks "$input_text")
+        style="task"
+        ;;
+    esac
+    
+    log debug "style=${style}"
     # Use jq to create the JSON object
     # --null-input: start with null instead of reading input
     # --arg: pass shell variable as jq string variable
     local json_payload
-    json_payload=$(jq --null-input --compact-output \
+    json_payload=$(jq --null-input --compact-output --stream-errors\
         --arg text "$input_text" \
         --arg position "$input_position" \
         --arg date "$input_date" \
+        --arg style "$style" \
         '{
             "blocks": [
                 {
                     "type": "text",
+                     "listStyle": $style,
                     "markdown": $text
+                   
                 }
             ],
             "position": {
@@ -223,7 +259,7 @@ main() {
     local api_action="blocks"
     local position="end"
     local date="today"
-    local code_block=false
+    local format="text"
     
     # Parse arguments
     local input_args=()
@@ -238,7 +274,15 @@ main() {
                 shift
                 ;;
             -c|--code)
-                code_block=true
+                format="code"
+                shift
+                ;;
+            -t|--task)
+                format="task"
+                shift
+                ;;
+            -l|--list)
+                format="list"
                 shift
                 ;;
             -*)
@@ -284,13 +328,10 @@ main() {
     fi
     
     log debug "main" "Processing input" "length=${#input}"
-    if [ "$code_block" = true ]; then
-        input="\`\`\`\n${input}\n\`\`\`"
-    fi
     
     # Create JSON payload
     local json_payload
-    json_payload=$(create_json "${input}" "${position}" "${date}")
+    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}")
     
     # Send to Craft API
     if post_to_craft "${api_action}" "${json_payload}"; then
