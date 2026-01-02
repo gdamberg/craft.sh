@@ -41,6 +41,10 @@ USAGE:
 OPTIONS:
     -h, --help          Show this help message
     -d, --debug         Enable debug logging
+    --dry-run           Test mode - display JSON payload without sending to API
+    --date=DATE         Specify target date for content (default: today)
+                        Accepts: 'today', 'tomorrow', 'yesterday', or YYYY-MM-DD
+    --due=DATE          Set due date for tasks (ISO8601 format: YYYY-MM-DD)
 
 FORMAT OPTIONS (mutually exclusive - choose only one):
     -c, --code          Wrap <input> in a markdown code block
@@ -57,6 +61,10 @@ EXAMPLES:
     craft.sh --task "Review PR\nTest changes\nDeploy"
     echo -e "Item 1\nItem 2\nItem 3" | craft.sh --list
     pbpaste | craft.sh
+    craft.sh --date=2024-01-15 "Meeting notes"
+    craft.sh --date=tomorrow "Schedule for tomorrow"
+    craft.sh --task --due=2024-12-31 "Complete project"
+    craft.sh --dry-run "Test without sending to API"
 
 CONFIG:
     ENV variables:   CRAFT_API_KEY, CRAFT_API_URL
@@ -75,12 +83,12 @@ log() {
     local prefix="$2"
     shift 2
     local message="$*"
-    
+
     # Skip debug messages if not in debug mode
     if [[ "${level}" == "debug" ]] && [[ "${LOG_LEVEL}" != "debug" ]]; then
         return 0
     fi
-    
+
     # Format output based on level
     case "$level" in
         debug)
@@ -95,6 +103,22 @@ log() {
     esac
 }
 
+date_format_validation() {
+  local input="$1"
+  case "$input" in
+    today|tomorrow|yesterday)
+      return 0
+      ;;
+    *)
+      if ! [[ "$input" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+      then
+        echo "Expected date in YYYY-MM-DD format"
+        exit 1
+      fi
+      return 0
+      ;;
+  esac
+}
 # Format line breaks: add extra line break if there's only one between lines
 # If there are already multiple line breaks, leave them as-is
 format_line_breaks() {
@@ -117,10 +141,11 @@ create_json() {
     local input_date="$3"
     local input_format="$4"
     local style="none"
-    
+    local due="$5"
+
     log debug "create_json" "Building payload" "position=${input_position}" "date=${input_date}" "format=${input_format}"
-    
-    
+
+
     case "$input_format" in
       code)
         input_text="\`\`\`\n${input_text}\n\`\`\`"
@@ -138,33 +163,61 @@ create_json() {
         log debug "create_json" "Using default text format"
         ;;
     esac
-    
+
     log debug "create_json" "Payload style" "style=${style}"
     # Use jq to create the JSON object
     # --null-input: start with null instead of reading input
     # --arg: pass shell variable as jq string variable
     local json_payload
-    json_payload=$(jq --null-input --compact-output \
-        --arg text "$input_text" \
-        --arg position "$input_position" \
-        --arg date "$input_date" \
-        --arg style "$style" \
-        '{
-            "blocks": [
-                {
-                    "type": "text",
-                    "listStyle": $style,
-                    "markdown": $text
+
+    # Check if we need to add taskInfo block
+    if [[ "$input_format" == "task" ]] && [[ -n "$due" ]]; then
+        log debug "create_json" "Adding taskInfo with deadline" "due=${due}"
+        json_payload=$(jq --null-input --compact-output \
+            --arg text "$input_text" \
+            --arg position "$input_position" \
+            --arg date "$input_date" \
+            --arg style "$style" \
+            --arg due "$due" \
+            '{
+                "blocks": [
+                    {
+                        "type": "text",
+                        "listStyle": $style,
+                        "markdown": $text,
+                        "taskInfo": {
+                            "deadlineDate": $due
+                        }
+                    }
+                ],
+                "position": {
+                    "position": $position,
+                    "date": $date
                 }
-            ],
-            "position": {
-                "position": $position,
-                "date": $date
-            }
-        }')
-    
+            }')
+    else
+        json_payload=$(jq --null-input --compact-output \
+            --arg text "$input_text" \
+            --arg position "$input_position" \
+            --arg date "$input_date" \
+            --arg style "$style" \
+            '{
+                "blocks": [
+                    {
+                        "type": "text",
+                        "listStyle": $style,
+                        "markdown": $text
+                    }
+                ],
+                "position": {
+                    "position": $position,
+                    "date": $date
+                }
+            }')
+    fi
+
     log debug "create_json" "Payload created successfully"
-    log debug "create_json" "${json_payload}" 
+    log debug "create_json" "${json_payload}"
     echo "$json_payload"
 }
 
@@ -175,31 +228,31 @@ load_config() {
         log debug "load_config" "Using credentials from environment"
         return 0
     fi
-    
+
     # Check if config file exists
     if [[ ! -f "${CONFIG_FILE}" ]]; then
         log error "load_config" "Config file not found" "path=${CONFIG_FILE}"
         log info "load_config" "Set CRAFT_API_KEY and CRAFT_API_URL environment variables or create config file"
         return 1
     fi
-    
+
     log debug "load_config" "Loading config file" "path=${CONFIG_FILE}"
-    
+
     # Source the config file
     # shellcheck disable=SC1090
     . "${CONFIG_FILE}"
-    
+
     # Check if variables were loaded
     if [[ -z "${CRAFT_API_KEY}" ]]; then
         log error "load_config" "CRAFT_API_KEY not found in config file or environment"
         return 1
     fi
-    
+
     if [[ -z "${CRAFT_API_URL}" ]]; then
         log error "load_config" "CRAFT_API_URL not found in config file or environment"
         return 1
     fi
-    
+
     log debug "load_config" "Credentials loaded successfully"
     return 0
 }
@@ -207,44 +260,44 @@ load_config() {
 post_to_craft() {
     local api="$1"
     local payload="$2"
-    
+
     # Validate inputs
     if [[ -z "${api}" ]]; then
         log error "post_to_craft" "API endpoint not specified"
         return 1
     fi
-    
+
     if [[ -z "${payload}" ]]; then
         log error "post_to_craft" "Payload is empty"
         return 1
     fi
-    
+
     # Validate payload is valid JSON
     if ! echo "${payload}" | jq empty 2>/dev/null; then
         log error "post_to_craft" "Invalid JSON payload"
         return 1
     fi
-    
+
     local api_url="${CRAFT_API_URL}/${api}"
     log debug "post_to_craft" "Sending request" "url=${api_url}" "endpoint=${api}"
-    
+
     # Make the API call with error handling
     local http_code
     local response
     local temp_file
     temp_file=$(mktemp)
-    
+
     http_code=$(curl -s -w "%{http_code}" -o "${temp_file}" \
         -X POST "${api_url}" \
         -H "Authorization: Bearer ${CRAFT_API_KEY}" \
         -H "Content-Type: application/json" \
         -d "${payload}")
-    
+
     response=$(cat "${temp_file}")
     rm -f "${temp_file}"
-    
+
     log debug "post_to_craft" "Response received" "http_code=${http_code}"
-    
+
     # Check HTTP status code
     if [[ "${http_code}" -ge 200 ]] && [[ "${http_code}" -lt 300 ]]; then
         if [[ "${LOG_LEVEL}" == "debug" ]] && [[ -n "${response}" ]]; then
@@ -259,18 +312,20 @@ post_to_craft() {
 # Main function that orchestrates the script
 main() {
     log debug "main" "Starting craft.sh" "version=${VERSION}"
-    
+
     # Check dependencies first
     dependency_check
-    
+
     # local variables
     local input=""
     local api_action="blocks"
     local position="end"
     local date="today"
+    local due_date=""
     local format="text"
     local format_count=0
-    
+    local dry_run=0
+
     # Parse arguments
     local input_args=()
     while [[ $# -gt 0 ]]; do
@@ -281,6 +336,21 @@ main() {
                 ;;
             -d|--debug)
                 LOG_LEVEL="debug"
+                shift
+                ;;
+            --dry-run)
+                dry_run=1
+                LOG_LEVEL="debug"
+                shift
+                ;;
+            --date=*)
+                date="${1#*=}"
+                date_format_validation "$date"
+                shift
+                ;;
+            --due=*)
+                due_date="${1#*=}"
+                date_format_validation "$due_date"
                 shift
                 ;;
             -c|--code)
@@ -319,12 +389,16 @@ main() {
         exit 1
     fi
 
-    # Load configuration
-    if ! load_config; then
-        log error "main" "Failed to load configuration"
-        exit 1
+    # Load configuration (skip for dry-run)
+    if [[ $dry_run -eq 0 ]]; then
+        if ! load_config; then
+            log error "main" "Failed to load configuration"
+            exit 1
+        fi
+    else
+        log debug "main" "Dry-run mode enabled - skipping configuration"
     fi
-    
+
     # Get input from arguments or stdin
     if [[ ${#input_args[@]} -gt 0 ]]; then
         # Input from command line arguments
@@ -341,27 +415,33 @@ main() {
         show_help
         exit 1
     fi
-    
+
     # Validate input is not empty
     if [[ -z "${input}" ]]; then
         log error "main" "Input is empty"
         exit 1
     fi
-    
+
     log debug "main" "Processing input" "length=${#input}"
-    
+
     # Create JSON payload
     local json_payload
-    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}")
-    
-    # Send to Craft API
-    if post_to_craft "${api_action}" "${json_payload}"; then
-      log debug "main" "Successfully posted to craft."
+    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}" "${due_date}")
+
+    # Send to Craft API or display for dry-run
+    if [[ $dry_run -eq 1 ]]; then
+        log debug "main" "Dry-run mode - displaying payload without sending"
+        echo "${json_payload}" | jq .
+        log debug "main" "Dry-run complete"
     else
-        log error "main" "Failed to post to Craft"
-        exit 1
+        if post_to_craft "${api_action}" "${json_payload}"; then
+          log debug "main" "Successfully posted to craft."
+        else
+            log error "main" "Failed to post to Craft"
+            exit 1
+        fi
     fi
-    
+
     log debug "end of craft.sh"
 }
 

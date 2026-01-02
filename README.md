@@ -14,8 +14,8 @@ Command-line tool for quick capture to Craft Documents. Never leave your termina
 
 **Install dependencies:**
 ```bash
-# macOS
-brew install curl jq
+# macOS (comes with curl preinstalled)
+brew install jq
 
 # Ubuntu/Debian
 sudo apt-get install curl jq
@@ -53,7 +53,7 @@ chmod 600 ~/.config/craft.sh/config
 
 # Option 2: Environment variables
 export CRAFT_API_KEY="your-api-key-here"
-export CRAFT_API_URL="https://api.craft.do/v1"
+export CRAFT_API_URL="your-api-url-here"
 ```
 
 _Note!_ Environment variables take precedence over config file.
