@@ -345,12 +345,12 @@ main() {
                 ;;
             --date=*)
                 date="${1#*=}"
-                date_format_validation $date
+                date_format_validation "$date"
                 shift
                 ;;
             --due=*)
                 due_date="${1#*=}"
-                date_format_validation $due_date
+                date_format_validation "$due_date"
                 shift
                 ;;
             -c|--code)
