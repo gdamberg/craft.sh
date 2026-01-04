@@ -142,13 +142,16 @@ create_json() {
     local input_format="$4"
     local style="none"
     local due="$5"
+    local type="text"
+    local textField="markdown"
 
     log debug "create_json" "Building payload" "position=${input_position}" "date=${input_date}" "format=${input_format}"
 
 
     case "$input_format" in
       code)
-        input_text="\`\`\`\n${input_text}\n\`\`\`"
+        type="code"
+        textField="rawCode"
         ;;
       list)
         input_text=$(format_line_breaks "$input_text")
@@ -165,56 +168,43 @@ create_json() {
     esac
 
     log debug "create_json" "Payload style" "style=${style}"
-    # Use jq to create the JSON object
+
+    # Log if adding taskInfo
+    if [[ "$input_format" == "task" ]] && [[ -n "$due" ]]; then
+        log debug "create_json" "Adding taskInfo with deadline" "due=${due}"
+    fi
+
+    # Use jq to create the JSON object dynamically
     # --null-input: start with null instead of reading input
     # --arg: pass shell variable as jq string variable
     local json_payload
-
-    # Check if we need to add taskInfo block
-    if [[ "$input_format" == "task" ]] && [[ -n "$due" ]]; then
-        log debug "create_json" "Adding taskInfo with deadline" "due=${due}"
-        json_payload=$(jq --null-input --compact-output \
-            --arg text "$input_text" \
-            --arg position "$input_position" \
-            --arg date "$input_date" \
-            --arg style "$style" \
-            --arg due "$due" \
-            '{
-                "blocks": [
-                    {
-                        "type": "text",
-                        "listStyle": $style,
-                        "markdown": $text,
-                        "taskInfo": {
-                            "deadlineDate": $due
-                        }
+    json_payload=$(jq --null-input --compact-output \
+        --arg type "$type" \
+        --arg textField "$textField" \
+        --arg text "$input_text" \
+        --arg position "$input_position" \
+        --arg date "$input_date" \
+        --arg style "$style" \
+        --arg format "$input_format" \
+        --arg due "$due" \
+        '{
+            "blocks": [
+                {
+                    "type": $type,
+                    "listStyle": $style,
+                    $textField: $text,
+                    "language": "bash"
+                } + (if $format == "task" and $due != "" then {
+                    "taskInfo": {
+                        "deadlineDate": $due
                     }
-                ],
-                "position": {
-                    "position": $position,
-                    "date": $date
-                }
-            }')
-    else
-        json_payload=$(jq --null-input --compact-output \
-            --arg text "$input_text" \
-            --arg position "$input_position" \
-            --arg date "$input_date" \
-            --arg style "$style" \
-            '{
-                "blocks": [
-                    {
-                        "type": "text",
-                        "listStyle": $style,
-                        "markdown": $text
-                    }
-                ],
-                "position": {
-                    "position": $position,
-                    "date": $date
-                }
-            }')
-    fi
+                } else {} end)
+            ],
+            "position": {
+                "position": $position,
+                "date": $date
+            }
+        }')
 
     log debug "create_json" "Payload created successfully"
     log debug "create_json" "${json_payload}"
