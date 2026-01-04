@@ -6,6 +6,8 @@ Command-line tool for quick capture to Craft Documents. Never leave your termina
 
 `craft.sh` is a lightweight bash script that streams text directly to your Craft daily notes. Pipe command output, capture error logs, or save code snippets—all without breaking your flow.
 
+Full documentation at:https://gdamberg.craft.me/craft.sh
+
 ## Requirements
 
 - **curl** - API requests
@@ -43,7 +45,7 @@ Get your Craft API Key and URL from within Craft Imagine section.
 ![Screenshot of Craft with the Imagine section open](craft-api.png)
 
 ```bash
-# Option 1: Config file 
+# Option 1: Config file
 mkdir -p ~/.config/craft.sh
 cat > ~/.config/craft.sh/config <<'EOF'
 CRAFT_API_KEY="your-api-key-here"

@@ -56,22 +56,19 @@ ARGUMENTS:
 
 EXAMPLES:
     craft.sh "Started work on x."
-    echo "Some text" | craft.sh
     cat app.py | craft.sh --code
-    craft.sh --task "Review PR\nTest changes\nDeploy"
-    echo -e "Item 1\nItem 2\nItem 3" | craft.sh --list
     pbpaste | craft.sh
-    craft.sh --date=2024-01-15 "Meeting notes"
-    craft.sh --date=tomorrow "Schedule for tomorrow"
-    craft.sh --task --due=2024-12-31 "Complete project"
-    craft.sh --dry-run "Test without sending to API"
+    craft.sh --date=tomorrow "Schedule meeting with John Doe"
+    craft.sh --task --due=2026-12-31 "Complete project X"
 
 CONFIG:
     ENV variables:   CRAFT_API_KEY, CRAFT_API_URL
     or config file:  ${CONFIG_FILE}
 
 INFO:
-    Source:   https://github.com/gdamberg/craft.sh/
+    Source:          https://github.com/gdamberg/craft.sh/
+    Documentation:   https://gdamberg.craft.me/craft.sh
+    Version:         ${VERSION}
 
 EOF
 }
