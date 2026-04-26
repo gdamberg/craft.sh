@@ -71,8 +71,12 @@ craft.sh "Quick note"
 
 **Format options:**
 ```bash
-# Code block
+# Code block (default language: bash)
 git log --oneline -5 | craft.sh --code
+
+# Code block with specific language
+cat app.py | craft.sh --code --language=python
+git diff | craft.sh --code --language=diff
 
 # Task list
 craft.sh --task "Review PR\nTest changes\nDeploy"

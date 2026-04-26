@@ -48,6 +48,7 @@ OPTIONS:
 
 FORMAT OPTIONS (mutually exclusive - choose only one):
     -c, --code          Wrap <input> in a markdown code block
+    --language=LANG     Set code block language (default: bash, requires --code)
     -t, --task          Format <input> as a task list (with checkboxes)
     -l, --list          Format <input> as a bullet list
 
@@ -139,6 +140,7 @@ create_json() {
     local input_format="$4"
     local style="none"
     local due="$5"
+    local language="${6:-bash}"
     local type="text"
     local textField="markdown"
 
@@ -184,13 +186,14 @@ create_json() {
         --arg style "$style" \
         --arg input_format "$input_format" \
         --arg due "$due" \
+        --arg language "$language" \
         '{
             "blocks": [
                 {
                     "type": $type,
                     "listStyle": $style,
                     $textField: $text
-                } + (if $type == "code" then {"language": "bash"} else {} end)
+                } + (if $type == "code" then {"language": $language} else {} end)
                   + (if $input_format == "task" and $due != "" then {
                     "taskInfo": {
                         "deadlineDate": $due
@@ -319,6 +322,7 @@ main() {
     local date="today"
     local due=""
     local format="text"
+    local language="bash"
     local format_count=0
     local dry_run=0
 
@@ -347,6 +351,10 @@ main() {
             --due=*)
                 due="${1#*=}"
                 date_format_validation "$due"
+                shift
+                ;;
+            --language=*)
+                language="${1#*=}"
                 shift
                 ;;
             -c|--code)
@@ -391,6 +399,12 @@ main() {
         exit 1
     fi
 
+    # Validate --language is only meaningful with --code
+    if [[ "${language}" != "bash" ]] && [[ "${format}" != "code" ]]; then
+        log error "main" "--language requires --code format"
+        exit 1
+    fi
+
     # Load configuration (skip for dry-run)
     if [[ $dry_run -eq 0 ]]; then
         if ! load_config; then
@@ -428,7 +442,7 @@ main() {
 
     # Create JSON payload
     local json_payload
-    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}" "${due}")
+    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}" "${due}" "${language}")
 
     # Send to Craft API or display for dry-run
     if [[ $dry_run -eq 1 ]]; then
