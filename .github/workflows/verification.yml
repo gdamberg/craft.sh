@@ -1,0 +1,23 @@
+name: Verification
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax check
+        run: bash -n craft.sh
+
+      - name: Run shellcheck
+        run: shellcheck craft.sh
+
+      - name: Dry-run smoke test
+        run: echo "smoke test" | bash craft.sh --dry-run | jq empty
