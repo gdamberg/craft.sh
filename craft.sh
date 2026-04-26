@@ -189,9 +189,9 @@ create_json() {
                 {
                     "type": $type,
                     "listStyle": $style,
-                    $textField: $text,
-                    "language": "bash"
-                } + (if $format == "task" and $due != "" then {
+                    $textField: $text
+                } + (if $type == "code" then {"language": "bash"} else {} end)
+                  + (if $format == "task" and $due != "" then {
                     "taskInfo": {
                         "deadlineDate": $due
                     }
@@ -288,7 +288,7 @@ post_to_craft() {
     # Check HTTP status code
     if [[ "${http_code}" -ge 200 ]] && [[ "${http_code}" -lt 300 ]]; then
         if [[ "${LOG_LEVEL}" == "debug" ]] && [[ -n "${response}" ]]; then
-            log debug "post_to_craft" "${response}" | jq . -M 2>/dev/null || echo "${response}"
+            echo "${response}" | jq . -M 2>/dev/null || echo "${response}"
         fi
         return 0
     else
@@ -373,6 +373,12 @@ main() {
         log error "main" "Multiple format flags specified (-c, -t, -l are mutually exclusive)"
         echo ""
         show_help
+        exit 1
+    fi
+
+    # Validate --due is only meaningful with --task
+    if [[ -n "${due_date}" ]] && [[ "${format}" != "task" ]]; then
+        log error "main" "--due requires --task format"
         exit 1
     fi
 
