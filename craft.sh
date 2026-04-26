@@ -44,7 +44,7 @@ OPTIONS:
     --dry-run           Test mode - display JSON payload without sending to API
     --date=DATE         Specify target date for content (default: today)
                         Accepts: 'today', 'tomorrow', 'yesterday', or YYYY-MM-DD
-    --due=DATE          Set due date for tasks (ISO8601 format: YYYY-MM-DD)
+    --due=DATE          Set due date for tasks (YYYY-MM-DD)
 
 FORMAT OPTIONS (mutually exclusive - choose only one):
     -c, --code          Wrap <input> in a markdown code block
@@ -182,7 +182,7 @@ create_json() {
         --arg position "$input_position" \
         --arg date "$input_date" \
         --arg style "$style" \
-        --arg format "$input_format" \
+        --arg input_format "$input_format" \
         --arg due "$due" \
         '{
             "blocks": [
@@ -191,7 +191,7 @@ create_json() {
                     "listStyle": $style,
                     $textField: $text
                 } + (if $type == "code" then {"language": "bash"} else {} end)
-                  + (if $format == "task" and $due != "" then {
+                  + (if $input_format == "task" and $due != "" then {
                     "taskInfo": {
                         "deadlineDate": $due
                     }
@@ -219,7 +219,7 @@ load_config() {
     # Check if config file exists
     if [[ ! -f "${CONFIG_FILE}" ]]; then
         log error "load_config" "Config file not found" "path=${CONFIG_FILE}"
-        log info "load_config" "Set CRAFT_API_KEY and CRAFT_API_URL environment variables or create config file"
+        log error "load_config" "Set CRAFT_API_KEY and CRAFT_API_URL environment variables or create config file"
         return 1
     fi
 
@@ -317,7 +317,7 @@ main() {
     local api_action="blocks"
     local position="end"
     local date="today"
-    local due_date=""
+    local due=""
     local format="text"
     local format_count=0
     local dry_run=0
@@ -345,8 +345,8 @@ main() {
                 shift
                 ;;
             --due=*)
-                due_date="${1#*=}"
-                date_format_validation "$due_date"
+                due="${1#*=}"
+                date_format_validation "$due"
                 shift
                 ;;
             -c|--code)
@@ -386,7 +386,7 @@ main() {
     fi
 
     # Validate --due is only meaningful with --task
-    if [[ -n "${due_date}" ]] && [[ "${format}" != "task" ]]; then
+    if [[ -n "${due}" ]] && [[ "${format}" != "task" ]]; then
         log error "main" "--due requires --task format"
         exit 1
     fi
@@ -428,7 +428,7 @@ main() {
 
     # Create JSON payload
     local json_payload
-    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}" "${due_date}")
+    json_payload=$(create_json "${input}" "${position}" "${date}" "${format}" "${due}")
 
     # Send to Craft API or display for dry-run
     if [[ $dry_run -eq 1 ]]; then
