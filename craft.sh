@@ -225,9 +225,18 @@ load_config() {
 
     log debug "load_config" "Loading config file" "path=${CONFIG_FILE}"
 
-    # Source the config file
-    # shellcheck disable=SC1090
-    . "${CONFIG_FILE}"
+    # Parse config file
+    while IFS='=' read -r key value; do
+        # Skip blank lines and comments
+        [[ -z "$key" || "$key" == \#* ]] && continue
+        # Strip surrounding quotes from value
+        value="${value#\"}" ; value="${value%\"}"
+        value="${value#\'}" ; value="${value%\'}"
+        case "$key" in
+            CRAFT_API_KEY) CRAFT_API_KEY="$value" ;;
+            CRAFT_API_URL) CRAFT_API_URL="$value" ;;
+        esac
+    done < "${CONFIG_FILE}"
 
     # Check if variables were loaded
     if [[ -z "${CRAFT_API_KEY}" ]]; then
