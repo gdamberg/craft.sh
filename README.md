@@ -117,6 +117,49 @@ pbpaste | craft.sh
 xclip -o | craft.sh
 ```
 
+## Shell Completions
+
+Completion scripts for bash, zsh, and fish are in the `completions/` directory.
+
+**bash**
+
+Add to `~/.bashrc` (or `~/.bash_profile` on macOS):
+```bash
+source /path/to/craft.sh/completions/craft.bash
+```
+
+Then reload your shell:
+```bash
+source ~/.bashrc
+```
+
+**zsh**
+
+Create a completions directory if you don't have one, add it to `$fpath`, and copy the file:
+```zsh
+mkdir -p ~/.zsh/completions
+cp /path/to/craft.sh/completions/_craft ~/.zsh/completions/
+```
+
+Make sure `$fpath` is updated and `compinit` is called in `~/.zshrc` — the `fpath` line must come before `compinit`:
+```zsh
+fpath=(~/.zsh/completions $fpath)
+autoload -U compinit && compinit
+```
+
+Then reload your shell:
+```zsh
+source ~/.zshrc
+```
+
+**fish**
+
+```fish
+cp /path/to/craft.sh/completions/craft.fish ~/.config/fish/completions/
+```
+
+Fish picks up completions automatically — no further configuration needed.
+
 ## License
 
 See [LICENSE](LICENSE)

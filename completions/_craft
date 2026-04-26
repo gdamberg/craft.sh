@@ -1,0 +1,17 @@
+#compdef craft.sh craft
+
+_craft_sh() {
+    _arguments -s \
+        '(-h --help)'{-h,--help}'[show help and exit]' \
+        '(-d --debug)'{-d,--debug}'[enable debug logging]' \
+        '--dry-run[display JSON payload without sending to API]' \
+        '--date=[target date for content]:date:(today tomorrow yesterday)' \
+        '--due=[due date for tasks]:date:(today tomorrow yesterday)' \
+        '--language=[code block language]:language:(bash python javascript typescript json yaml sql go rust c cpp java kotlin swift php ruby)' \
+        '(-c --code)'{-c,--code}'[wrap input in a code block]' \
+        '(-t --task)'{-t,--task}'[format input as a task list]' \
+        '(-l --list)'{-l,--list}'[format input as a bullet list]' \
+        '*:input text'
+}
+
+_craft_sh "$@"
