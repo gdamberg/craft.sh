@@ -1,8 +1,8 @@
 class CraftSh < Formula
   desc "Command-line tool for quick capture to Craft Documents"
   homepage "https://github.com/gdamberg/craft.sh"
-  url "https://github.com/gdamberg/craft.sh/archive/refs/tags/0.9.1.tar.gz"
-  sha256 "7da6ac6b6655e38b458305a475cbc938aa89d435fcaa829e3cca544e203a2ae5"
+  url "https://github.com/gdamberg/craft.sh/archive/refs/tags/1.0.0.tar.gz"
+  sha256 "701cc76d291eba968fef242470fe674c713ac8ce2202339e0f659c89558a7676"
   license "MIT"
 
   depends_on "jq"
