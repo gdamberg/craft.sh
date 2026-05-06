@@ -6,6 +6,8 @@ class CraftSh < Formula
   license "MIT"
   version "1.0.0"
 
+  depends_on "jq"
+
   def install
     bin.install "craft.sh"
     bash_completion.install "completions/craft.bash" => "craft.sh"
