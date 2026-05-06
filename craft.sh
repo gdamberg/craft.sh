@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly VERSION="0.9.0"
+readonly VERSION="0.9.1"
 readonly SOURCE_REPO="https://github.com/gdamberg/craft.sh/"
 
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/craft.sh"
