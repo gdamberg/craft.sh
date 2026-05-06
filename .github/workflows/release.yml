@@ -12,6 +12,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Syntax check
         run: bash -n craft.sh
@@ -40,15 +43,17 @@ jobs:
             --generate-notes \
             craft.sh
 
-      - name: Compute Homebrew SHA256
+      - name: Update Homebrew formula
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          TARBALL_URL="https://github.com/gdamberg/craft.sh/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz"
+          TARBALL_URL="https://github.com/gdamberg/craft.sh/archive/refs/tags/${VERSION}.tar.gz"
           SHA256=$(curl -fsSL "$TARBALL_URL" | shasum -a 256 | awk '{print $1}')
-          echo ""
-          echo "Homebrew formula SHA256 for v${VERSION}:"
-          echo "  sha256 \"${SHA256}\""
-          echo ""
-          echo "Update Formula/craft-sh.rb in the tap repo (gdamberg/homebrew-craft.sh):"
-          echo "  version \"${VERSION}\""
-          echo "  sha256 \"${SHA256}\""
+
+          sed -i "s|url \".*\"|url \"${TARBALL_URL}\"|" Formula/craft-sh.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Formula/craft-sh.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/craft-sh.rb
+          git commit -m "Update Homebrew formula to ${VERSION}"
+          git push origin main
