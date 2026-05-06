@@ -23,6 +23,10 @@ git push origin main
 git push origin vx.y.z
 ```
 
+**4. Update the Homebrew formula:**
+
+After the release workflow completes, open the Actions run and find the "Compute Homebrew SHA256" step — it prints the exact `version` and `sha256` lines to copy. Update `Formula/craft-sh.rb` in the tap repo (`gdamberg/homebrew-craft.sh`) with those values.
+
 Before tagging, ensure the verification workflow (`.github/workflows/verification.yml`) is passing on `main` — it runs a syntax check, shellcheck, and a dry-run smoke test on every push.
 
 The release workflow (`.github/workflows/release.yml`) triggers on the tag push and is self-contained — it runs the full verification suite (syntax check, shellcheck, dry-run smoke test) plus a version consistency check that verifies `VERSION` in `craft.sh` matches the tag. If any check fails the release is not created.

@@ -22,7 +22,13 @@ sudo apt-get install curl jq
 
 ## Installation
 
-**Option 1: Download the latest release (recommended)**
+**Option 1: Homebrew (macOS)**
+```bash
+brew tap gdamberg/craft.sh https://github.com/gdamberg/craft.sh
+brew install craft-sh
+```
+
+**Option 2: Download the latest release**
 ```bash
 curl -fsSL https://github.com/gdamberg/craft.sh/releases/latest/download/craft.sh \
   -o craft.sh
@@ -32,7 +38,7 @@ chmod +x craft.sh
 sudo mv craft.sh /usr/local/bin/
 ```
 
-**Option 2: Clone the repository**
+**Option 3: Clone the repository**
 ```bash
 git clone https://github.com/gdamberg/craft.sh.git
 cd craft.sh
