@@ -13,9 +13,7 @@ Command-line tool for quick capture to Craft Documents. Never leave your termina
 
 **Install dependencies:**
 ```bash
-# macOS (comes with curl preinstalled)
-brew install jq
-
+# macOS — jq is installed automatically when using Homebrew (see Installation)
 # Ubuntu/Debian
 sudo apt-get install curl jq
 ```
@@ -253,7 +251,7 @@ Use only one format option at a time.
 
 **Invalid date format**
 ```
-Expected date in YYYY-MM-DD format
+ERROR [date_format_validation] Expected date in YYYY-MM-DD format ...
 ```
 Use `YYYY-MM-DD`, or the keywords `today`, `tomorrow`, `yesterday`:
 ```bash
@@ -280,6 +278,8 @@ cat myfile.txt | craft.sh
 ## Shell Completions
 
 Completion scripts for bash, zsh, and fish are in the `completions/` directory.
+
+**Homebrew** — completions are installed automatically. No extra steps needed.
 
 **bash** — add to `~/.bashrc` (or `~/.bash_profile` on macOS):
 ```bash
