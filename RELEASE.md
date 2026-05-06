@@ -18,9 +18,9 @@ git commit -m "Bump version to x.y.z"
 
 **3. Tag and push:**
 ```bash
-git tag vx.y.z
+git tag x.y.z
 git push origin main
-git push origin vx.y.z
+git push origin x.y.z
 ```
 
 **4. Update the Homebrew formula:**
