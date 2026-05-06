@@ -40,6 +40,7 @@ USAGE:
 
 OPTIONS:
     -h, --help          Show this help message
+    --version           Print version and exit
     -d, --debug         Enable debug logging
     --dry-run           Test mode - display JSON payload without sending to API
     --date=DATE         Specify target date for content (default: today)
@@ -312,6 +313,14 @@ post_to_craft() {
 main() {
     log debug "main" "Starting craft.sh" "version=${VERSION}"
 
+    # Handle early-exit flags before dependency check
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)    show_help; exit 0 ;;
+            --version)    echo "${VERSION}"; exit 0 ;;
+        esac
+    done
+
     # Check dependencies first
     dependency_check
 
@@ -332,6 +341,10 @@ main() {
         case "$1" in
             -h|--help)
                 show_help
+                exit 0
+                ;;
+            --version)
+                echo "${VERSION}"
                 exit 0
                 ;;
             -d|--debug)

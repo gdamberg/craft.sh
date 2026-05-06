@@ -3,6 +3,7 @@
 _craft_sh() {
     _arguments -s \
         '(-h --help)'{-h,--help}'[show help and exit]' \
+        '--version[print version and exit]' \
         '(-d --debug)'{-d,--debug}'[enable debug logging]' \
         '--dry-run[display JSON payload without sending to API]' \
         '--date=[target date for content]:date:(today tomorrow yesterday)' \

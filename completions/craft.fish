@@ -2,6 +2,7 @@
 complete -c craft.sh -f
 
 complete -c craft.sh -s h -l help    -d 'Show help and exit'
+complete -c craft.sh      -l version -d 'Print version and exit'
 complete -c craft.sh -s d -l debug   -d 'Enable debug logging'
 complete -c craft.sh      -l dry-run -d 'Display JSON payload without sending to API'
 
