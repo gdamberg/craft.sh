@@ -25,6 +25,7 @@ _craft_sh() {
 
     COMPREPLY=($(compgen -W "
         -h --help
+        --version
         -d --debug
         --dry-run
         --date=

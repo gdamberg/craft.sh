@@ -1,6 +1,6 @@
 # Release Process
 
-Releases are created by pushing a version tag. GitHub Actions runs shellcheck, then creates a GitHub release with `craft.sh` attached as a downloadable asset. Release notes are auto-generated from commits since the previous tag.
+Releases are created by pushing a version tag. GitHub Actions runs the verification suite, creates a GitHub release with `craft.sh` attached as a downloadable asset, auto-generates release notes from commits since the previous tag, and updates the Homebrew formula.
 
 ## Steps
 
@@ -10,26 +10,30 @@ Releases are created by pushing a version tag. GitHub Actions runs shellcheck, t
 readonly VERSION="x.y.z"
 ```
 
-**2. Commit the bump:**
+**2. Commit and merge to main:**
 ```bash
 git add craft.sh
 git commit -m "Bump version to x.y.z"
+git push origin main
 ```
+
+> The tag must be pushed after main is up to date — the workflow checks out main and verifies that `VERSION` in `craft.sh` matches the tag.
 
 **3. Tag and push:**
 ```bash
 git tag x.y.z
-git push origin main
 git push origin x.y.z
 ```
 
-**4. Update the Homebrew formula:**
+**4. Done.**
 
-After the release workflow completes, open the Actions run and find the "Compute Homebrew SHA256" step — it prints the exact `version` and `sha256` lines to copy. Update `Formula/craft-sh.rb` in the tap repo (`gdamberg/homebrew-craft.sh`) with those values.
+The release workflow automatically:
+- Runs the full verification suite (syntax check, shellcheck, dry-run smoke test)
+- Verifies `VERSION` in `craft.sh` matches the tag
+- Creates the GitHub release with `craft.sh` as a downloadable asset
+- Updates `Formula/craft-sh.rb` with the correct URL and SHA256 and pushes the commit to main
 
-Before tagging, ensure the verification workflow (`.github/workflows/verification.yml`) is passing on `main` — it runs a syntax check, shellcheck, and a dry-run smoke test on every push.
-
-The release workflow (`.github/workflows/release.yml`) triggers on the tag push and is self-contained — it runs the full verification suite (syntax check, shellcheck, dry-run smoke test) plus a version consistency check that verifies `VERSION` in `craft.sh` matches the tag. If any check fails the release is not created.
+If any check fails, the release is not created.
 
 ## Versioning
 

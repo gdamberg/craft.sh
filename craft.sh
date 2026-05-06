@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly VERSION="0.9.0"
+readonly VERSION="0.9.1"
 readonly SOURCE_REPO="https://github.com/gdamberg/craft.sh/"
 
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/craft.sh"
@@ -19,12 +19,12 @@ dependency_check() {
   local missing_deps=0
   for cmd in "curl" "jq"; do
     if ! command -v "${cmd}" >/dev/null 2>&1; then
-      echo "ERROR: Required command '${cmd}' not found." >&2
+      log error "dependency_check" "Required command not found" "cmd=${cmd}"
       missing_deps=1
     fi
   done
   if [[ ${missing_deps} -eq 1 ]]; then
-      echo "ERROR: Missing required dependencies. See ${SOURCE_REPO} for installation instructions." >&2
+      log error "dependency_check" "Missing required dependencies" "source=${SOURCE_REPO}"
       exit 1
   fi
   log debug "dependency_check" "All dependencies found"
@@ -40,6 +40,7 @@ USAGE:
 
 OPTIONS:
     -h, --help          Show this help message
+    --version           Print version and exit
     -d, --debug         Enable debug logging
     --dry-run           Test mode - display JSON payload without sending to API
     --date=DATE         Specify target date for content (default: today)
@@ -110,7 +111,7 @@ date_format_validation() {
     *)
       if ! [[ "$input" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
       then
-        echo "Expected date in YYYY-MM-DD format"
+        log error "date_format_validation" "Expected date in YYYY-MM-DD format" "input=${input}"
         exit 1
       fi
       return 0
@@ -312,6 +313,14 @@ post_to_craft() {
 main() {
     log debug "main" "Starting craft.sh" "version=${VERSION}"
 
+    # Handle early-exit flags before dependency check
+    for arg in "$@"; do
+        case "$arg" in
+            -h|--help)    show_help; exit 0 ;;
+            --version)    echo "${VERSION}"; exit 0 ;;
+        esac
+    done
+
     # Check dependencies first
     dependency_check
 
@@ -332,6 +341,10 @@ main() {
         case "$1" in
             -h|--help)
                 show_help
+                exit 0
+                ;;
+            --version)
+                echo "${VERSION}"
                 exit 0
                 ;;
             -d|--debug)
@@ -458,7 +471,7 @@ main() {
         fi
     fi
 
-    log debug "end of craft.sh"
+    log debug "main" "Done"
 }
 
 ### Entry Point ###
